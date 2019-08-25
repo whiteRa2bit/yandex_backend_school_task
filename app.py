@@ -4,31 +4,49 @@ from flask import jsonify
 import os
 import json
 import urllib.parse
+from flask import abort
+from marshmallow import Schema, fields, validates, ValidationError
+from datetime import datetime
+
+class CreateNoteInputSchema(Schema):
+    citizen_id = fields.Int(required=True)
+    town = fields.Str(required=True)
+    street = fields.Str(required=True)
+    building = fields.Str(required=True)
+    apartment = fields.Int(required=True)
+    name = fields.Str(required=True)
+    birth_date = fields.Str(required=True)
+    gender = fields.Str(required=True)
+    relatives = fields.List(fields.Int, required=True)
+
+    @validates('birth_date')
+    def is_not_in_future(self, value):
+        """'value' is the datetime parsed from time_created by marshmallow"""
+        now = datetime.now()
+        value_dt = datetime.strptime(value, '%d.%m.%Y')
+        if value_dt > now:
+            raise ValidationError("Can't create notes in the future!")
+
+create_note_schema = CreateNoteInputSchema()
+
 
 app = Flask(__name__)
-
 app.config.from_object(os.environ['APP_SETTINGS'])
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
 from models import Citizen
 
-@app.route("/")
-def hello():
-    return "Hello World!"
 
 @app.route("/imports", methods=['POST'])
 def add_citizens():
-	# data = json.loads(request)
-	# print(data)
-	# print(request.args.get("citizens"))
-	# return str(request.args.get("citizens"))
-	# print(request.args.get("citizens")[0]['town'])
-	# return '200'
-	# citizens_data =  request.args.get('citizens')
+
 	citizens_data = request.get_json()
+	errors = create_note_schema.validate(citizens_data['citizens'][0])
+	if errors:
+		abort(400)
+
 	citizens_ids = []
-	# return str((citizens_data['citizens']))
 
 	import_id = 1
 	for data in citizens_data['citizens']:
@@ -45,16 +63,13 @@ def add_citizens():
 					gender = data['gender'],\
 					relatives = ' '.join(list(map(str, data['relatives'])))
 				)
-			# return str(type(data['relatives'][0]))
-
 			db.session.add(citizen)
-
 			db.session.commit()
 			citizens_ids.append(citizen.citizen_id)
 
 
 		except Exception as e:  ### CHANGE IT LATER!!!!!!!!!!!!!
-			return(str(e)) 
+			abort(400) 
 	return jsonify({"data": {"import_id": import_id}}), 201
 
 
