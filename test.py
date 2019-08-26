@@ -39,5 +39,12 @@ def task2(url):
 	print(r.text)
 	print(r.status_code)
 
+def task3(url):
+	r = requests.get(url)
+	print(r)
+	print(r.text)
+	print(r.status_code)
+
 # task1('http://0.0.0.0:8080/imports')
-task2('http://0.0.0.0:8080/imports/1/citizens/5')
+# task2('http://0.0.0.0:8080/imports/1/citizens/5')
+task3('http://0.0.0.0:8080/imports/1/citizens')

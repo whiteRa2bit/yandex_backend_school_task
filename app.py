@@ -123,4 +123,19 @@ def modify_citizens_info(import_id, citizen_id):
 	# return str(citizen.serialize()['name'])
 	return jsonify(citizen.serialize()), 200
 
+
+@app.route('/imports/<import_id>/citizens', methods=['GET'])
+def return_citizens_data(import_id):
+	query = db.session.query(Citizen).filter(Citizen.import_id==import_id)
+	rows = query.all()
+	citizens_data = []
+
+	for row in rows:
+		citizens_data.append(row.serialize())
+		# return str(type(row))
+	# return str(len(rows))
+	return jsonify({'data': citizens_data}), 200
+
+
+
 app.run(host= '0.0.0.0', port=8080, debug=True)
