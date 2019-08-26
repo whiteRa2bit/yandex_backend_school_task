@@ -11,9 +11,10 @@ To run project:
 4) pip install virtualenv
 5) virtualenv env
 6) source env/bin/activate
-7) export APP_SETTINGS="config.DevelopmentConfig"
-8) export DATABASE_URL="postgresql:///name_of_database"
-9) python manage.py db init
-10) python manage.py db migrate
-11) python manage.py db upgrade
-12) python manage.py runserver
+7) pip install -r requirments.txt
+8) export APP_SETTINGS="config.DevelopmentConfig"
+9) export DATABASE_URL="postgresql:///name_of_database"
+10) python manage.py db init
+11) python manage.py db migrate
+12) python manage.py db upgrade
+13) python manage.py runserver
