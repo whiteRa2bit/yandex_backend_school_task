@@ -1,3 +1,7 @@
+from marshmallow import Schema, fields, validates, ValidationError
+from marshmallow.validate import Length, Range
+basedir = os.path.abspath(os.path.dirname(__file__))
+
 class AddCitizensShema(Schema):
     citizen_id = fields.Int(required=True, validate=Range(min=0))
     town = fields.Str(required=True, validate=Length(min=1, max=256))
@@ -37,8 +41,13 @@ class AddCitizensShema(Schema):
             raise ValidationError("Can create citizens only with gender 'male' or 'female'")
 
     @validates('birth_date')
-    def is_not_in_future(self, value):  
+    def is_valid_date(self, value): 
         """'value' is the datetime parsed from time_created by marshmallow"""
+        try:
+            datetime.strptime(value, '%d.%m.%Y')
+        except:
+            raise ValidationError("wrong date format")
+
         now = datetime.now()
         value_dt = datetime.strptime(value, '%d.%m.%Y')
         if value_dt > now:
