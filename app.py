@@ -11,7 +11,8 @@ from datetime import datetime
 from sqlalchemy import and_
 import uuid
 import random
-
+from datetime import date
+import numpy as np
 
 class AddCitizensShema(Schema):
     citizen_id = fields.Int(required=True, validate=Range(min=0))
@@ -129,7 +130,7 @@ modify_citizen_info_shema = ModifyCitizenInfoShema()
 app = Flask(__name__)
 app.config.from_object(os.environ['APP_SETTINGS'])
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db = SQLAlchemy(app)
+db = SQLAlchemy(app)	
 
 from models import Citizen
 
@@ -144,7 +145,7 @@ def add_citizens():
 		for i in range(len(citizens_data['citizens'])):
 			errors = add_citizens_schema.validate(citizens_data['citizens'][i])
 			if errors:
-				return 'invalid', 400
+				return "invalid data", 400
 
 		citizens_ids = []
 
@@ -171,7 +172,7 @@ def add_citizens():
 		return jsonify({"data": {"import_id": import_id}}), 201
 
 	except:
-		abort(400) 
+		return "invalid data", 400 
 
 
 
@@ -217,7 +218,7 @@ def modify_citizens_info(import_id, citizen_id):
 		new_citizen_data = request.get_json()
 		errors = modify_citizen_info_shema.validate(new_citizen_data)
 		if errors or not new_citizen_data:
-			return str("invalid data"), 400
+			return "invalid data", 400
 
 		citizen = db.session.query(Citizen).filter_by(citizen_id=citizen_id, import_id=import_id).first()
 
@@ -228,7 +229,7 @@ def modify_citizens_info(import_id, citizen_id):
 
 		return jsonify(citizen.serialize()), 200
 	except Exception as e:
-		return str("invalid data"), 400
+		return "invalid data", 400
 
 
 @app.route('/imports/<import_id>/citizens', methods=['GET'])
@@ -245,7 +246,7 @@ def return_citizens_data(import_id):
 		return jsonify({'data': citizens_data}), 200
 		# return json.dumps({'data': citizens_data}, ensure_ascii=False), 200
 	except:
-		return str("invalid data"), 400
+		return "invalid data", 400
 
 
 @app.route('/imports/<import_id>/citizens/birthdays', methods=['GET'])
@@ -273,9 +274,35 @@ def return_citizens_birthdays(import_id):
 
 		return jsonify(birthdays_to_return), 200
 	except:
-		abort(400)
+		return "invalid data", 400
 
 
+def calculate_age(born):
+    today = date.today()
+    return today.year - born.year - ((today.month, today.day) < (born.month, born.day))
 
+@app.route('/imports/<import_id>/towns/stat/percentile/age', methods=['GET'])
+def get_stat_percentile(import_id):
+	try:
+		query = db.session.query(Citizen).filter(Citizen.import_id==import_id)
+		rows = query.all()
+		towns_percentile = {}
+		for row in rows:
+			try:
+				towns_percentile[row.town].append(calculate_age(datetime.strptime(row.birth_date, '%d.%m.%Y')))
+			except KeyError:
+				towns_percentile[row.town] = []
+				towns_percentile[row.town].append(calculate_age(datetime.strptime(row.birth_date, '%d.%m.%Y')))
+
+		data_result = []
+		for town in towns_percentile.keys():
+			ages = np.array(towns_percentile[town])
+			ages_percentiles = np.percentile(ages, [50, 75, 99])
+			ages_percentiles = np.around(ages_percentiles, decimals=2)
+			data_result.append({"town": town, "p50": ages_percentiles[0], "p75":ages_percentiles[1], "p99": ages_percentiles[2]})
+		return jsonify({"data": data_result})
+	except Exception as e:
+		return str(e)
+		return "invalid data", 400
 
 app.run(host= '0.0.0.0', port=8080, debug=True)
