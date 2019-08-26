@@ -34,9 +34,9 @@ class Citizen(db.Model):
 
 	def serialize(self):
 		return {\
-			'id': self.id,\
+			# 'id': self.id,\
     		'citizen_id': self.citizen_id,\
-    		'import_id': self.import_id,\
+    		# 'import_id': self.import_id,\
     		'town': self.town,\
     		'street': self.street,\
     		'building': self.building,\
@@ -44,5 +44,5 @@ class Citizen(db.Model):
     		'name': self.name,\
     		'birth_date': self.birth_date,\
     		'gender': self.gender,\
-    		'relatives': self.relatives\
+    		'relatives': list(map(int, self.relatives.split()))\
     	}
